@@ -1,4 +1,5 @@
 import threading
+import os
 import cv2
 from deepface import DeepFace
 
@@ -11,16 +12,30 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 frames_counter = 0
 
 face_match = False
+face_name = ''
 
-reference_img = cv2.imread("./imgs/ref.jpg")
+imgs_path = 'imgs/'
+references = []
+
+for file_path in os.listdir(imgs_path):
+    if os.path.isfile(os.path.join(imgs_path, file_path)) and '.jpg' in file_path:
+        img = cv2.imread(f"./{os.path.join(imgs_path, file_path)}")
+        label = file_path.split('.')[0]
+        references.append((img, label))
+
 
 def check_face_match(frame):
     global face_match
+    global face_name
     try:
-        if DeepFace.verify(frame, reference_img.copy())['verified']:
-            face_match = True
-        else:
-            face_match = False
+        for img, label in references:
+            if DeepFace.verify(frame, img.copy())['verified']:
+                face_match = True
+                face_name = label
+                break
+            else:
+                face_name = ''
+                face_match = False
 
     except ValueError:
         face_match = False
@@ -38,9 +53,9 @@ while True:
         frames_counter += 1
 
         if face_match:
-            cv2.putText(frame, "MATCH!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+            cv2.putText(frame, f"MATCH! {face_name}", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
         else:
-            cv2.putText(frame, "NO MATCH!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
+            cv2.putText(frame, f"NO MATCH! {face_name}", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
         
         cv2.imshow("Cam", frame)
 
